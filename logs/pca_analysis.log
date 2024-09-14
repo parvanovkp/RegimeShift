@@ -1,0 +1,26 @@
+2024-09-14 15:54:00,885 - INFO - Starting PCA analysis.
+2024-09-14 15:54:01,082 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_stocks.csv with shape (1949, 503).
+2024-09-14 15:54:01,082 - INFO - Starting basic PCA on the entire dataset.
+2024-09-14 15:54:01,213 - INFO - Number of components to retain to explain 90.0% variance: 263
+2024-09-14 15:54:01,368 - INFO - PCA fitting completed with 263 components.
+2024-09-14 15:54:01,371 - INFO - Saved explained variance to explained_variance.csv.
+2024-09-14 15:54:01,490 - INFO - Saved PCA loadings to pca_loadings.csv.
+2024-09-14 15:54:01,492 - INFO - Saved PCA model to pca_model.joblib.
+2024-09-14 15:54:01,826 - INFO - Saved cumulative explained variance plot to cumulative_explained_variance.png.
+2024-09-14 15:54:01,826 - INFO - Starting temporal PCA (rolling window PCA).
+2024-09-14 15:54:02,102 - INFO - Saved temporal PCA results to temporal_pca.csv.
+2024-09-14 15:54:02,250 - INFO - Saved temporal PCA explained variance plot to temporal_pca_explained_variance.png.
+2024-09-14 15:54:02,250 - INFO - PCA analysis completed successfully.
+2024-09-14 16:54:30,576 - INFO - Starting PCA analysis.
+2024-09-14 16:54:30,782 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_stocks.csv with shape (1949, 503).
+2024-09-14 16:54:30,782 - INFO - Starting basic PCA on the entire dataset.
+2024-09-14 16:54:30,913 - INFO - Number of components to retain to explain 90.0% variance: 263
+2024-09-14 16:54:31,069 - INFO - PCA fitting completed with 263 components.
+2024-09-14 16:54:31,072 - INFO - Saved explained variance to explained_variance.csv.
+2024-09-14 16:54:31,192 - INFO - Saved PCA loadings to pca_loadings.csv.
+2024-09-14 16:54:31,195 - INFO - Saved PCA model to pca_model.joblib.
+2024-09-14 16:54:31,522 - INFO - Saved cumulative explained variance plot to cumulative_explained_variance.png.
+2024-09-14 16:54:31,522 - INFO - Starting temporal PCA (rolling window PCA).
+2024-09-14 16:54:31,793 - INFO - Saved temporal PCA results to temporal_pca.csv.
+2024-09-14 16:54:31,943 - INFO - Saved temporal PCA explained variance plot to temporal_pca_explained_variance.png.
+2024-09-14 16:54:31,943 - INFO - PCA analysis completed successfully.
