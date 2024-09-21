@@ -1,0 +1,40 @@
+# Data Acquisition Configuration
+
+# Logging settings
+logging:
+  filename: 'logs/data_acquisition.log'
+
+# Data retrieval settings
+data:
+  wiki_url: "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+  interval: '2m'  # 2-minute data
+  days: 58  # Maximum number of days to go back
+  format: 'csv'  # Choose between 'csv' and 'parquet'
+  base_output_dir: 'raw_data'  # Base directory for all output
+  stock_output_dir: 'stock_data_2min'
+  etf_output_dir: 'etf_data_2min'
+  etf_tickers:
+    - 'SPY'   # S&P 500 ETF
+    - 'QQQ'   # NASDAQ 100 ETF
+    - 'DIA'   # Dow Jones Industrial Average ETF
+    - 'IWM'   # Russell 2000 ETF
+    - 'XLV'   # Health Care Select Sector SPDR Fund
+    - 'XLK'   # Technology Select Sector SPDR Fund
+    - 'XLF'   # Financial Select Sector SPDR Fund
+    - 'XLE'   # Energy Select Sector SPDR Fund
+    - 'XLI'   # Industrial Select Sector SPDR Fund
+    - 'XLP'   # Consumer Staples Select Sector SPDR Fund
+    - 'XLY'   # Consumer Discretionary Select Sector SPDR Fund
+    - 'XLU'   # Utilities Select Sector SPDR Fund
+    - 'XLB'   # Materials Select Sector SPDR Fund
+    - 'XLRE'  # Real Estate Select Sector SPDR Fund
+    - 'XLC'   # Communication Services Select Sector SPDR Fund
+    - 'VXX'   # iPath Series B S&P 500 VIX Short-Term Futures ETN
+    - 'GLD'   # SPDR Gold Trust
+    - 'SLV'   # iShares Silver Trust
+    - 'USO'   # United States Oil Fund
+    - 'TLT'   # iShares 20+ Year Treasury Bond ETF
+
+# Performance settings
+performance:
+  max_threads: 8  # Adjust based on your system's capabilities
