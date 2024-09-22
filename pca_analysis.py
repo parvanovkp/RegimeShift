@@ -1,13 +1,17 @@
 import pandas as pd
 import numpy as np
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, SparsePCA
+from sklearn.cluster import KMeans
 from tqdm import tqdm
 import logging
 import os
-import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 from datetime import timedelta
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import yfinance as yf
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuration
 logging.basicConfig(
@@ -20,6 +24,7 @@ PREPROCESSED_DATA_DIR = 'preprocessed_data'
 PREPROCESSED_STOCKS_FILE = os.path.join(PREPROCESSED_DATA_DIR, 'preprocessed_stocks.csv')
 PREPROCESSED_ETFS_FILE = os.path.join(PREPROCESSED_DATA_DIR, 'preprocessed_etfs.csv')
 PCA_RESULTS_DIR = 'pca_results'
+SECTOR_INFO_FILE = os.path.join(PREPROCESSED_DATA_DIR, 'sector_info.csv')
 
 def load_preprocessed_data(file_path: str) -> pd.DataFrame:
     try:
@@ -34,6 +39,11 @@ def perform_pca(data: np.ndarray, n_components: float = 0.9) -> Tuple[PCA, np.nd
     pca = PCA(n_components=n_components)
     pca_result = pca.fit_transform(data)
     return pca, pca_result
+
+def perform_sparse_pca(data: np.ndarray, n_components: int) -> Tuple[SparsePCA, np.ndarray]:
+    sparse_pca = SparsePCA(n_components=n_components, random_state=42)
+    sparse_pca_result = sparse_pca.fit_transform(data)
+    return sparse_pca, sparse_pca_result
 
 def full_period_pca(data: pd.DataFrame) -> Tuple[PCA, np.ndarray]:
     logging.info("Performing full period PCA")
@@ -53,65 +63,76 @@ def rolling_window_pca(data: pd.DataFrame, window_size: int, step_size: int) -> 
     logging.info("Rolling window PCA completed")
     return results
 
-def intraday_pca(data: pd.DataFrame) -> List[Tuple[pd.Timestamp, PCA, np.ndarray]]:
-    logging.info("Performing intraday PCA")
-    results = []
-    for date, day_data in tqdm(data.groupby(data.index.date)):
-        pca, pca_result = perform_pca(day_data.values)
-        results.append((pd.Timestamp(date), pca, pca_result))
-    logging.info("Intraday PCA completed")
-    return results
+def sector_based_pca(data: pd.DataFrame, sector_mapping: Dict[str, str]) -> Dict[str, Tuple[PCA, np.ndarray]]:
+    logging.info("Performing sector-based PCA")
+    sector_results = {}
+    for sector, stocks in sector_mapping.items():
+        sector_data = data[stocks]
+        pca, pca_result = perform_pca(sector_data.values)
+        sector_results[sector] = (pca, pca_result)
+    logging.info("Sector-based PCA completed")
+    return sector_results
 
 def plot_cumulative_explained_variance(pca: PCA, title: str, filename: str):
-    plt.figure(figsize=(12, 6))
     cumulative_variance_ratio = np.cumsum(pca.explained_variance_ratio_)
-    plt.plot(range(1, len(cumulative_variance_ratio) + 1), cumulative_variance_ratio, 'b-')
-    plt.xlabel('Number of Components')
-    plt.ylabel('Cumulative Explained Variance Ratio')
-    plt.title(title)
-    plt.axhline(y=0.8, color='r', linestyle='--', label='80% Threshold')
-    plt.axhline(y=0.9, color='g', linestyle='--', label='90% Threshold')
-    plt.legend()
-    plt.savefig(os.path.join(PCA_RESULTS_DIR, filename))
-    plt.close()
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=list(range(1, len(cumulative_variance_ratio) + 1)), 
+                             y=cumulative_variance_ratio, 
+                             mode='lines', 
+                             name='Cumulative Explained Variance'))
+    
+    fig.add_hline(y=0.8, line_dash="dash", line_color="red", annotation_text="80% Threshold")
+    fig.add_hline(y=0.9, line_dash="dash", line_color="green", annotation_text="90% Threshold")
+    
+    fig.update_layout(
+        title=title,
+        xaxis_title="Number of Components",
+        yaxis_title="Cumulative Explained Variance Ratio",
+        legend_title="Legend"
+    )
+    
+    fig.write_html(os.path.join(PCA_RESULTS_DIR, filename))
 
 def plot_top_component_loadings(pca: PCA, data: pd.DataFrame, n_components: int, n_top_stocks: int, title: str, filename: str):
-    plt.figure(figsize=(15, 10))
+    fig = make_subplots(
+        rows=n_components, 
+        cols=2, 
+        subplot_titles=sum([[f'PC{i+1} Top {n_top_stocks}', f'PC{i+1} Bottom {n_top_stocks}'] for i in range(n_components)], [])
+    )
     loadings = pd.DataFrame(
         pca.components_.T[:, :n_components],
         columns=[f'PC{i+1}' for i in range(n_components)],
         index=data.columns
     )
-    
     for i in range(n_components):
-        plt.subplot(n_components, 1, i+1)
-        top_stocks = loadings[f'PC{i+1}'].abs().nlargest(n_top_stocks)
-        top_stocks.sort_values(ascending=False).plot(kind='bar')
-        plt.title(f'Top {n_top_stocks} Stocks for PC{i+1}')
-        plt.xlabel('')
-        plt.ylabel('Loading')
-        plt.xticks(rotation=45, ha='right')
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(PCA_RESULTS_DIR, filename))
-    plt.close()
+        pc = f'PC{i+1}'
+        top = loadings[pc].nlargest(n_top_stocks)
+        bottom = loadings[pc].nsmallest(n_top_stocks)
+        fig.add_trace(go.Bar(x=top.index, y=top.values, marker_color='blue'), row=i+1, col=1)
+        fig.add_trace(go.Bar(x=bottom.index, y=bottom.values, marker_color='red'), row=i+1, col=2)
+        fig.update_xaxes(tickangle=45, row=i+1, col=1)
+        fig.update_xaxes(tickangle=45, row=i+1, col=2)
+        fig.update_yaxes(title_text="Loading", row=i+1, col=1)
+        fig.update_yaxes(title_text="Loading", row=i+1, col=2)
+    fig.update_layout(height=300*n_components, width=1500, title_text=title, showlegend=False)
+    fig.write_html(os.path.join(PCA_RESULTS_DIR, filename))
 
 def plot_explained_variance_evolution(rolling_results: List[Tuple[pd.Timestamp, PCA, np.ndarray]], n_components: int, title: str, filename: str):
     dates = [result[0] for result in rolling_results]
     explained_variances = [result[1].explained_variance_ratio_[:n_components] for result in rolling_results]
     
-    plt.figure(figsize=(15, 8))
+    fig = go.Figure()
     for i in range(n_components):
-        plt.plot(dates, [ev[i] for ev in explained_variances], label=f'PC{i+1}')
+        fig.add_trace(go.Scatter(x=dates, y=[ev[i] for ev in explained_variances], mode='lines', name=f'PC{i+1}'))
     
-    plt.xlabel('Date')
-    plt.ylabel('Explained Variance Ratio')
-    plt.title(title)
-    plt.legend()
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig(os.path.join(PCA_RESULTS_DIR, filename))
-    plt.close()
+    fig.update_layout(
+        title=title,
+        xaxis_title="Date",
+        yaxis_title="Explained Variance Ratio",
+        legend_title="Principal Components"
+    )
+    fig.write_html(os.path.join(PCA_RESULTS_DIR, filename))
 
 def plot_component_heatmap(pca: PCA, data: pd.DataFrame, n_components: int, title: str, filename: str):
     loadings = pd.DataFrame(
@@ -120,12 +141,77 @@ def plot_component_heatmap(pca: PCA, data: pd.DataFrame, n_components: int, titl
         index=data.columns
     )
     
-    plt.figure(figsize=(20, 30))
-    sns.heatmap(loadings, cmap='coolwarm', center=0)
-    plt.title(title)
-    plt.tight_layout()
-    plt.savefig(os.path.join(PCA_RESULTS_DIR, filename))
-    plt.close()
+    # Cluster stocks based on their loadings
+    kmeans = KMeans(n_clusters=10, random_state=42)
+    cluster_labels = kmeans.fit_predict(loadings)
+    
+    # Sort stocks based on cluster labels
+    sorted_indices = np.argsort(cluster_labels)
+    sorted_loadings = loadings.iloc[sorted_indices]
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=sorted_loadings.values,
+        x=sorted_loadings.columns,
+        y=sorted_loadings.index,
+        colorscale='RdBu',
+        zmid=0
+    ))
+    
+    fig.update_layout(
+        title=title,
+        xaxis_title="Principal Components",
+        yaxis_title="Stocks",
+        height=2000,
+        width=1000
+    )
+    
+    fig.write_html(os.path.join(PCA_RESULTS_DIR, filename))
+
+def fetch_sector_info(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
+        return {
+            'Ticker': ticker,
+            'Sector': info.get('sector', 'Unknown'),
+            'Industry': info.get('industry', 'Unknown')
+        }
+    except:
+        return {'Ticker': ticker, 'Sector': 'Unknown', 'Industry': 'Unknown'}
+
+def get_sector_mapping(stocks):
+    if os.path.exists(SECTOR_INFO_FILE):
+        sector_info = pd.read_csv(SECTOR_INFO_FILE)
+    else:
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(fetch_sector_info, ticker) for ticker in stocks]
+            sector_info = [future.result() for future in tqdm(as_completed(futures), total=len(stocks), desc="Fetching sector info")]
+        
+        sector_info = pd.DataFrame(sector_info)
+        sector_info.to_csv(SECTOR_INFO_FILE, index=False)
+    
+    # Merge similar sectors
+    sector_mapping = {
+    'Technology': ['Technology'],
+    'Healthcare': ['Healthcare'],
+    'Consumer': ['Consumer Cyclical', 'Consumer Defensive'],
+    'Industrials': ['Industrials'],
+    'Financial Services': ['Financial Services'],
+    'Energy': ['Energy'],
+    'Communication Services': ['Communication Services'],
+    'Real Estate': ['Real Estate'],
+    'Utilities': ['Utilities'],
+    'Basic Materials': ['Basic Materials']
+    }
+    
+    sector_info['MergedSector'] = sector_info['Sector'].map(
+        {sector: merged_sector 
+         for merged_sector, sectors in sector_mapping.items() 
+         for sector in sectors}
+    ).fillna(sector_info['Sector'])
+    
+    return {sector: group['Ticker'].tolist() 
+            for sector, group in sector_info.groupby('MergedSector')}
 
 def main():
     os.makedirs(PCA_RESULTS_DIR, exist_ok=True)
@@ -138,29 +224,29 @@ def main():
         logging.error("Failed to load preprocessed data. Exiting.")
         return
 
+    # Get sector mapping
+    sector_mapping = get_sector_mapping(stocks_data.columns)
+
     # 2.1 Full Period PCA
     full_pca, full_pca_result = full_period_pca(stocks_data)
-    plot_cumulative_explained_variance(full_pca, "Full Period PCA - Cumulative Explained Variance", "full_period_pca_variance.png")
-    plot_top_component_loadings(full_pca, stocks_data, 5, 20, "Full Period PCA - Top 20 Stocks per Component", "full_period_pca_top_loadings.png")
-    plot_component_heatmap(full_pca, stocks_data, 10, "Full Period PCA - Top 10 Components Heatmap", "full_period_pca_heatmap.png")
+    plot_cumulative_explained_variance(full_pca, "Full Period PCA - Cumulative Explained Variance", "full_period_pca_variance.html")
+    plot_top_component_loadings(full_pca, stocks_data, 5, 20, "Full Period PCA - Top 20 Stocks per Component", "full_period_pca_top_loadings.html")
+    plot_component_heatmap(full_pca, stocks_data, 10, "Full Period PCA - Top 10 Components Heatmap", "full_period_pca_heatmap.html")
 
     # 2.2 Rolling Window PCA
-    # 1-Day Window (assuming 2-minute data, 195 data points per trading day)
-    one_day_results = rolling_window_pca(stocks_data, window_size=195, step_size=98)
-    plot_explained_variance_evolution(one_day_results, 5, "1-Day Rolling Window PCA - Top 5 Components", "one_day_rolling_pca_evolution.png")
+    # 10-Day Window (assuming 2-minute data, 1950 data points for 10 trading days)
+    ten_day_results = rolling_window_pca(stocks_data, window_size=1950, step_size=195)
+    plot_explained_variance_evolution(ten_day_results, 5, "10-Day Rolling Window PCA - Top 5 Components", "ten_day_rolling_pca_evolution.html")
 
-    # 5-Day Window
-    five_day_results = rolling_window_pca(stocks_data, window_size=975, step_size=195)
-    plot_explained_variance_evolution(five_day_results, 5, "5-Day Rolling Window PCA - Top 5 Components", "five_day_rolling_pca_evolution.png")
+    # 2.3 Sparse PCA
+    n_sparse_components = 10
+    sparse_pca, sparse_pca_result = perform_sparse_pca(stocks_data.values, n_sparse_components)
+    plot_top_component_loadings(sparse_pca, stocks_data, n_sparse_components, 10, "Sparse PCA - Top 10 Stocks per Component", "sparse_pca_top_loadings.html")
 
-    # 2.3 Intraday PCA
-    intraday_results = intraday_pca(stocks_data)
-    
-    # Plot explained variance for a sample of days
-    sample_days = 5
-    sample_intraday_results = intraday_results[1:sample_days + 1]
-    for i, (date, pca, _) in enumerate(sample_intraday_results):
-        plot_cumulative_explained_variance(pca, f"Intraday PCA - {date.date()}", f"intraday_pca_variance_day_{i+1}.png")
+    # 2.4 Sector-based PCA
+    sector_pca_results = sector_based_pca(stocks_data, sector_mapping)
+    for sector, (pca, _) in sector_pca_results.items():
+        plot_cumulative_explained_variance(pca, f"{sector} Sector PCA - Cumulative Explained Variance", f"{sector.lower()}_sector_pca_variance.html")
 
     logging.info("PCA analysis completed successfully")
 
