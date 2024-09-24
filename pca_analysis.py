@@ -213,6 +213,83 @@ def get_sector_mapping(stocks):
     return {sector: group['Ticker'].tolist() 
             for sector, group in sector_info.groupby('MergedSector')}
 
+def plot_sector_heatmaps(sparse_pca: SparsePCA, data: pd.DataFrame, sector_mapping: Dict[str, List[str]], n_components: int, title: str, filename: str):
+    loadings = pd.DataFrame(
+        sparse_pca.components_.T,
+        columns=[f'PC{i+1}' for i in range(n_components)],
+        index=data.columns
+    )
+    
+    # Create a DataFrame with sector information
+    sector_df = pd.DataFrame([(ticker, sector) for sector, tickers in sector_mapping.items() for ticker in tickers],
+                             columns=['Ticker', 'Sector'])
+    sector_df = sector_df.set_index('Ticker')
+    
+    # Merge loadings with sector information
+    loadings_with_sector = loadings.join(sector_df)
+    
+    # Separate numeric loadings from sector information
+    numeric_loadings = loadings_with_sector.drop('Sector', axis=1)
+    sectors = loadings_with_sector['Sector']
+    
+    # Separate positive and negative loadings
+    positive_mask = numeric_loadings >= 0
+    negative_mask = numeric_loadings < 0
+    
+    positive_loadings = numeric_loadings[positive_mask].groupby(sectors).sum()
+    negative_loadings = numeric_loadings[negative_mask].groupby(sectors).sum()
+    
+    # Normalize loadings
+    positive_loadings = positive_loadings.div(positive_loadings.abs().sum(axis=0), axis=1)
+    negative_loadings = negative_loadings.div(negative_loadings.abs().sum(axis=0), axis=1)
+    
+    # Create figure with two side-by-side subplots
+    fig = make_subplots(rows=1, cols=2, subplot_titles=("Positive Loadings", "Negative Loadings"),
+                        shared_yaxes=True, horizontal_spacing=0.1)
+    
+    # Add positive loadings heatmap
+    fig.add_trace(
+        go.Heatmap(z=positive_loadings.values, x=positive_loadings.columns, y=positive_loadings.index,
+                   colorscale='Reds', zmin=0, zmax=positive_loadings.values.max(),
+                   colorbar=dict(title="Positive<br>Loading<br>Strength", x=0.45, y=0.5)),
+        row=1, col=1
+    )
+    
+    # Add negative loadings heatmap
+    fig.add_trace(
+        go.Heatmap(z=np.abs(negative_loadings.values), x=negative_loadings.columns, y=negative_loadings.index,
+                   colorscale='Blues', zmin=0, zmax=np.abs(negative_loadings.values).max(),
+                   colorbar=dict(title="Negative<br>Loading<br>Strength", x=1.0, y=0.5)),
+        row=1, col=2
+    )
+    
+    # Update layout
+    fig.update_layout(
+        title=dict(
+            text=title,
+            x=0.535,  # Center the title
+            y=0.95  # Adjust the vertical position if needed
+        ),
+        height=600,
+        width=1200,
+        yaxis=dict(title="Sectors"),
+        xaxis=dict(title="Principal Components"),
+        xaxis2=dict(title="Principal Components"),
+        annotations=[
+            dict(
+                x=0.5,
+                y=1.05,
+                showarrow=False,
+                text="Interpretation: Darker colors indicate stronger influence of the sector on the principal component.",
+                xref="paper",
+                yref="paper",
+                font=dict(size=12)
+            )
+        ]
+    )
+    
+    fig.write_html(os.path.join(PCA_RESULTS_DIR, filename))
+
 def main():
     os.makedirs(PCA_RESULTS_DIR, exist_ok=True)
 
@@ -244,6 +321,17 @@ def main():
     plot_top_component_loadings(sparse_pca, stocks_data, n_sparse_components, 10, "Sparse PCA - Top 10 Stocks per Component", "sparse_pca_top_loadings.html")
 
     # 2.4 Sector-based PCA
+    #Plot sector heatmaps for Sparse PCA
+    plot_sector_heatmaps(sparse_pca, stocks_data, sector_mapping, n_sparse_components, 
+                         "Sparse PCA - Sector Loadings Heatmap", "sparse_pca_sector_heatmaps.html")
+
+    #Plot sector heatmaps for Full PCA as reference check
+    n_components = n_sparse_components
+    pca_full, pca_full_result = perform_pca(stocks_data.values, n_components)
+    plot_sector_heatmaps(pca_full, stocks_data, sector_mapping, n_components, 
+                         "Full PCA - Sector Loadings Heatmap", "full_pca_sector_heatmaps.html")
+
+    #Plot cumulative explained variance for each sector
     sector_pca_results = sector_based_pca(stocks_data, sector_mapping)
     for sector, (pca, _) in sector_pca_results.items():
         plot_cumulative_explained_variance(pca, f"{sector} Sector PCA - Cumulative Explained Variance", f"{sector.lower()}_sector_pca_variance.html")

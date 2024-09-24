@@ -1,7 +1,7 @@
-2024-09-22 00:26:28,594 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_stocks.csv with shape (5462, 457)
-2024-09-22 00:26:28,660 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_etfs.csv with shape (5462, 20)
-2024-09-22 00:26:28,663 - INFO - Performing full period PCA
-2024-09-22 00:26:28,709 - INFO - Full period PCA completed. Explained variance ratio: [0.2452253  0.07449605 0.02787422 0.01953254 0.01677795 0.01509389
+2024-09-22 21:43:50,861 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_stocks.csv with shape (5462, 457)
+2024-09-22 21:43:50,929 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_etfs.csv with shape (5462, 20)
+2024-09-22 21:43:50,935 - INFO - Performing full period PCA
+2024-09-22 21:43:50,981 - INFO - Full period PCA completed. Explained variance ratio: [0.2452253  0.07449605 0.02787422 0.01953254 0.01677795 0.01509389
  0.01217078 0.01110908 0.01070577 0.0095404  0.00902069 0.0083807
  0.00776329 0.00727506 0.00705589 0.00688922 0.00654904 0.00623185
  0.00583989 0.00545876 0.00522237 0.00513634 0.00505094 0.00482579
@@ -44,8 +44,8 @@
  0.00082979 0.00082823 0.000824   0.00082264 0.00081922 0.00081335
  0.00081039 0.00080744 0.00080473 0.00079732 0.00079569 0.00079211
  0.0007902  0.00078587 0.00078138]
-2024-09-22 00:26:28,947 - INFO - Performing rolling window PCA with window size 1950 and step size 195
-2024-09-22 00:26:30,973 - INFO - Rolling window PCA completed
-2024-09-22 00:27:44,237 - INFO - Performing sector-based PCA
-2024-09-22 00:27:44,260 - INFO - Sector-based PCA completed
-2024-09-22 00:27:44,460 - INFO - PCA analysis completed successfully
+2024-09-22 21:43:51,241 - INFO - Performing rolling window PCA with window size 1950 and step size 195
+2024-09-22 21:43:53,773 - INFO - Rolling window PCA completed
+2024-09-22 21:45:16,876 - INFO - Performing sector-based PCA
+2024-09-22 21:45:16,903 - INFO - Sector-based PCA completed
+2024-09-22 21:45:17,284 - INFO - PCA analysis completed successfully
