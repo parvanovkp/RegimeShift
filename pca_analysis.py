@@ -290,6 +290,58 @@ def plot_sector_heatmaps(sparse_pca: SparsePCA, data: pd.DataFrame, sector_mappi
     
     fig.write_html(os.path.join(PCA_RESULTS_DIR, filename))
 
+def save_pca_components(pca: PCA, data: pd.DataFrame, n_components: int, filename: str):
+    loadings = pd.DataFrame(
+        pca.components_.T[:, :n_components],
+        columns=[f'PC{i+1}' for i in range(n_components)],
+        index=data.columns
+    )
+    loadings.to_csv(os.path.join(PCA_RESULTS_DIR, filename))
+    logging.info(f"Saved PCA components to {filename}")
+
+def save_sparse_pca_components(sparse_pca: SparsePCA, data: pd.DataFrame, n_components: int, filename: str):
+    loadings = pd.DataFrame(
+        sparse_pca.components_.T,
+        columns=[f'PC{i+1}' for i in range(n_components)],
+        index=data.columns
+    )
+    loadings.to_csv(os.path.join(PCA_RESULTS_DIR, filename))
+    logging.info(f"Saved Sparse PCA components to {filename}")
+
+def save_rolling_window_results(results: List[Tuple[pd.Timestamp, PCA, np.ndarray]], filename: str):
+    """Save rolling window PCA results to a CSV file."""
+    data = []
+    max_components = 0
+    max_features = 0
+
+    # First pass: determine the maximum number of components and features
+    for timestamp, pca, _ in results:
+        max_components = max(max_components, pca.n_components_)
+        max_features = max(max_features, pca.n_features_in_)
+        
+    # Second pass: create rows with consistent size
+    for timestamp, pca, _ in results:
+        row = [timestamp]
+        flat_components = pca.components_.flatten()
+        row.extend(flat_components)
+        # Pad with zeros if necessary
+        row.extend([0] * (max_components * max_features - len(flat_components)))
+        data.append(row)
+    
+    columns = ['timestamp'] + [f'PC{i+1}_Stock{j+1}' for i in range(max_components) for j in range(max_features)]
+    df = pd.DataFrame(data, columns=columns)
+    df.set_index('timestamp', inplace=True)
+    df.to_csv(os.path.join(PCA_RESULTS_DIR, filename))
+    logging.info(f"Saved rolling window PCA results to {filename}")
+    logging.info(f"Max components: {max_components}, Max features: {max_features}")
+
+def save_sector_mapping(sector_mapping: Dict[str, List[str]], filename: str):
+    """Save sector mapping to a CSV file."""
+    df = pd.DataFrame([(stock, sector) for sector, stocks in sector_mapping.items() for stock in stocks],
+                      columns=['Stock', 'Sector'])
+    df.to_csv(os.path.join(PCA_RESULTS_DIR, filename), index=False)
+    logging.info(f"Saved sector mapping to {filename}")
+
 def main():
     os.makedirs(PCA_RESULTS_DIR, exist_ok=True)
 
@@ -303,22 +355,26 @@ def main():
 
     # Get sector mapping
     sector_mapping = get_sector_mapping(stocks_data.columns)
+    save_sector_mapping(sector_mapping, 'sector_mapping.csv')
 
     # 2.1 Full Period PCA
     full_pca, full_pca_result = full_period_pca(stocks_data)
     plot_cumulative_explained_variance(full_pca, "Full Period PCA - Cumulative Explained Variance", "full_period_pca_variance.html")
     plot_top_component_loadings(full_pca, stocks_data, 5, 20, "Full Period PCA - Top 20 Stocks per Component", "full_period_pca_top_loadings.html")
     plot_component_heatmap(full_pca, stocks_data, 10, "Full Period PCA - Top 10 Components Heatmap", "full_period_pca_heatmap.html")
+    save_pca_components(full_pca, stocks_data, 10, 'pca_components.csv')
 
     # 2.2 Rolling Window PCA
     # 10-Day Window (assuming 2-minute data, 1950 data points for 10 trading days)
     ten_day_results = rolling_window_pca(stocks_data, window_size=1950, step_size=195)
     plot_explained_variance_evolution(ten_day_results, 5, "10-Day Rolling Window PCA - Top 5 Components", "ten_day_rolling_pca_evolution.html")
+    save_rolling_window_results(ten_day_results, 'rolling_window_pca_results.csv')
 
     # 2.3 Sparse PCA
     n_sparse_components = 10
     sparse_pca, sparse_pca_result = perform_sparse_pca(stocks_data.values, n_sparse_components)
     plot_top_component_loadings(sparse_pca, stocks_data, n_sparse_components, 10, "Sparse PCA - Top 10 Stocks per Component", "sparse_pca_top_loadings.html")
+    save_sparse_pca_components(sparse_pca, stocks_data, n_sparse_components, 'sparse_pca_components.csv')
 
     # 2.4 Sector-based PCA
     #Plot sector heatmaps for Sparse PCA

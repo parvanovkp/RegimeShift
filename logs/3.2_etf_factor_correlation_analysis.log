@@ -1,0 +1,5 @@
+2024-09-29 02:49:20,160 - INFO - Loaded data from preprocessed_data/preprocessed_stocks.csv with shape (5462, 457)
+2024-09-29 02:49:20,225 - INFO - Loaded data from preprocessed_data/preprocessed_etfs.csv with shape (5462, 20)
+2024-09-29 02:49:20,227 - INFO - Loaded PCA results from pca_results/pca_components.csv with shape (457, 10)
+2024-09-29 02:49:20,228 - INFO - Loaded PCA results from pca_results/sparse_pca_components.csv with shape (457, 10)
+2024-09-29 02:49:21,456 - INFO - ETF correlation analysis completed successfully for both PCA and Sparse PCA.
