@@ -6,12 +6,13 @@ from tqdm import tqdm
 import logging
 import os
 import seaborn as sns
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union
 from datetime import timedelta
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import yfinance as yf
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import multiprocessing
 
 # Configuration
 logging.basicConfig(
@@ -61,6 +62,32 @@ def rolling_window_pca(data: pd.DataFrame, window_size: int, step_size: int) -> 
         pca, pca_result = perform_pca(window_data.values)
         results.append((window_end_time, pca, pca_result))
     logging.info("Rolling window PCA completed")
+    return results
+
+def perform_sparse_pca_window(args):
+    start, end, data, n_components = args
+    window_data = data.iloc[start:end]
+    window_end_time = window_data.index[-1]
+    sparse_pca, sparse_pca_result = perform_sparse_pca(window_data.values, n_components)
+    return window_end_time, sparse_pca, sparse_pca_result
+
+def rolling_window_sparse_pca(data: pd.DataFrame, window_size: int, step_size: int, n_components: int) -> List[Tuple[pd.Timestamp, SparsePCA, np.ndarray]]:
+    logging.info(f"Performing parallel rolling window Sparse PCA with window size {window_size} and step size {step_size}")
+    
+    # Create a list of arguments for each window
+    args_list = [(start, start + window_size, data, n_components) 
+                 for start in range(0, len(data) - window_size + 1, step_size)]
+    
+    # Use all available cores except one
+    num_processes = multiprocessing.cpu_count() - 1
+    
+    # Use multiprocessing to parallelize the computation
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        results = list(tqdm(pool.imap(perform_sparse_pca_window, args_list), 
+                            total=len(args_list), 
+                            desc="Rolling Sparse PCA"))
+    
+    logging.info("Parallel rolling window Sparse PCA completed")
     return results
 
 def sector_based_pca(data: pd.DataFrame, sector_mapping: Dict[str, str]) -> Dict[str, Tuple[PCA, np.ndarray]]:
@@ -118,9 +145,17 @@ def plot_top_component_loadings(pca: PCA, data: pd.DataFrame, n_components: int,
     fig.update_layout(height=300*n_components, width=1500, title_text=title, showlegend=False)
     fig.write_html(os.path.join(PCA_RESULTS_DIR, filename))
 
-def plot_explained_variance_evolution(rolling_results: List[Tuple[pd.Timestamp, PCA, np.ndarray]], n_components: int, title: str, filename: str):
+def plot_explained_variance_evolution(rolling_results: List[Tuple[pd.Timestamp, Union[PCA, SparsePCA], np.ndarray]], n_components: int, title: str, filename: str):
     dates = [result[0] for result in rolling_results]
-    explained_variances = [result[1].explained_variance_ratio_[:n_components] for result in rolling_results]
+    
+    # Check if we're dealing with PCA or SparsePCA
+    if isinstance(rolling_results[0][1], PCA):
+        explained_variances = [result[1].explained_variance_ratio_[:n_components] for result in rolling_results]
+    else:  # SparsePCA
+        # For SparsePCA, we'll use the absolute sum of each component as a proxy for explained variance
+        explained_variances = [np.abs(result[1].components_).sum(axis=1)[:n_components] for result in rolling_results]
+        # Normalize to get a ratio
+        explained_variances = [ev / ev.sum() for ev in explained_variances]
     
     fig = go.Figure()
     for i in range(n_components):
@@ -335,6 +370,33 @@ def save_rolling_window_results(results: List[Tuple[pd.Timestamp, PCA, np.ndarra
     logging.info(f"Saved rolling window PCA results to {filename}")
     logging.info(f"Max components: {max_components}, Max features: {max_features}")
 
+def save_rolling_window_sparse_pca_results(results: List[Tuple[pd.Timestamp, SparsePCA, np.ndarray]], filename: str):
+    """Save rolling window Sparse PCA results to a CSV file."""
+    data = []
+    max_components = 0
+    max_features = 0
+
+    # First pass: determine the maximum number of components and features
+    for timestamp, sparse_pca, _ in results:
+        max_components = max(max_components, sparse_pca.n_components)
+        max_features = max(max_features, sparse_pca.n_features_in_)
+        
+    # Second pass: create rows with consistent size
+    for timestamp, sparse_pca, _ in results:
+        row = [timestamp]
+        flat_components = sparse_pca.components_.flatten()
+        row.extend(flat_components)
+        # Pad with zeros if necessary
+        row.extend([0] * (max_components * max_features - len(flat_components)))
+        data.append(row)
+    
+    columns = ['timestamp'] + [f'PC{i+1}_Stock{j+1}' for i in range(max_components) for j in range(max_features)]
+    df = pd.DataFrame(data, columns=columns)
+    df.set_index('timestamp', inplace=True)
+    df.to_csv(os.path.join(PCA_RESULTS_DIR, filename))
+    logging.info(f"Saved rolling window Sparse PCA results to {filename}")
+    logging.info(f"Max components: {max_components}, Max features: {max_features}")
+
 def save_sector_mapping(sector_mapping: Dict[str, List[str]], filename: str):
     """Save sector mapping to a CSV file."""
     df = pd.DataFrame([(stock, sector) for sector, stocks in sector_mapping.items() for stock in stocks],
@@ -370,24 +432,29 @@ def main():
     plot_explained_variance_evolution(ten_day_results, 5, "10-Day Rolling Window PCA - Top 5 Components", "ten_day_rolling_pca_evolution.html")
     save_rolling_window_results(ten_day_results, 'rolling_window_pca_results.csv')
 
-    # 2.3 Sparse PCA
+    # New: Rolling Window Sparse PCA
     n_sparse_components = 10
+    ten_day_sparse_results = rolling_window_sparse_pca(stocks_data, window_size=1950, step_size=195, n_components=n_sparse_components)
+    plot_explained_variance_evolution(ten_day_sparse_results, 5, "10-Day Rolling Window Sparse PCA - Top 5 Components", "ten_day_rolling_sparse_pca_evolution.html")
+    save_rolling_window_sparse_pca_results(ten_day_sparse_results, 'rolling_window_sparse_pca_results.csv')
+
+    # 2.3 Sparse PCA
     sparse_pca, sparse_pca_result = perform_sparse_pca(stocks_data.values, n_sparse_components)
     plot_top_component_loadings(sparse_pca, stocks_data, n_sparse_components, 10, "Sparse PCA - Top 10 Stocks per Component", "sparse_pca_top_loadings.html")
     save_sparse_pca_components(sparse_pca, stocks_data, n_sparse_components, 'sparse_pca_components.csv')
 
     # 2.4 Sector-based PCA
-    #Plot sector heatmaps for Sparse PCA
+    # Plot sector heatmaps for Sparse PCA
     plot_sector_heatmaps(sparse_pca, stocks_data, sector_mapping, n_sparse_components, 
                          "Sparse PCA - Sector Loadings Heatmap", "sparse_pca_sector_heatmaps.html")
 
-    #Plot sector heatmaps for Full PCA as reference check
+    # Plot sector heatmaps for Full PCA as reference check
     n_components = n_sparse_components
     pca_full, pca_full_result = perform_pca(stocks_data.values, n_components)
     plot_sector_heatmaps(pca_full, stocks_data, sector_mapping, n_components, 
                          "Full PCA - Sector Loadings Heatmap", "full_pca_sector_heatmaps.html")
 
-    #Plot cumulative explained variance for each sector
+    # Plot cumulative explained variance for each sector
     sector_pca_results = sector_based_pca(stocks_data, sector_mapping)
     for sector, (pca, _) in sector_pca_results.items():
         plot_cumulative_explained_variance(pca, f"{sector} Sector PCA - Cumulative Explained Variance", f"{sector.lower()}_sector_pca_variance.html")

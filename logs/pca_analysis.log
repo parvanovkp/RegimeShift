@@ -1,8 +1,8 @@
-2024-09-29 02:39:04,453 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_stocks.csv with shape (5462, 457)
-2024-09-29 02:39:04,519 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_etfs.csv with shape (5462, 20)
-2024-09-29 02:39:04,523 - INFO - Saved sector mapping to sector_mapping.csv
-2024-09-29 02:39:04,523 - INFO - Performing full period PCA
-2024-09-29 02:39:04,569 - INFO - Full period PCA completed. Explained variance ratio: [0.2452253  0.07449605 0.02787422 0.01953254 0.01677795 0.01509389
+2024-09-29 16:29:20,933 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_stocks.csv with shape (5462, 457)
+2024-09-29 16:29:20,999 - INFO - Loaded preprocessed data from preprocessed_data/preprocessed_etfs.csv with shape (5462, 20)
+2024-09-29 16:29:21,004 - INFO - Saved sector mapping to sector_mapping.csv
+2024-09-29 16:29:21,004 - INFO - Performing full period PCA
+2024-09-29 16:29:21,051 - INFO - Full period PCA completed. Explained variance ratio: [0.2452253  0.07449605 0.02787422 0.01953254 0.01677795 0.01509389
  0.01217078 0.01110908 0.01070577 0.0095404  0.00902069 0.0083807
  0.00776329 0.00727506 0.00705589 0.00688922 0.00654904 0.00623185
  0.00583989 0.00545876 0.00522237 0.00513634 0.00505094 0.00482579
@@ -45,12 +45,16 @@
  0.00082979 0.00082823 0.000824   0.00082264 0.00081922 0.00081335
  0.00081039 0.00080744 0.00080473 0.00079732 0.00079569 0.00079211
  0.0007902  0.00078587 0.00078138]
-2024-09-29 02:39:04,805 - INFO - Saved PCA components to pca_components.csv
-2024-09-29 02:39:04,805 - INFO - Performing rolling window PCA with window size 1950 and step size 195
-2024-09-29 02:39:06,834 - INFO - Rolling window PCA completed
-2024-09-29 02:39:11,613 - INFO - Saved rolling window PCA results to rolling_window_pca_results.csv
-2024-09-29 02:39:11,613 - INFO - Max components: 228, Max features: 457
-2024-09-29 02:40:21,924 - INFO - Saved Sparse PCA components to sparse_pca_components.csv
-2024-09-29 02:40:22,024 - INFO - Performing sector-based PCA
-2024-09-29 02:40:22,046 - INFO - Sector-based PCA completed
-2024-09-29 02:40:22,212 - INFO - PCA analysis completed successfully
+2024-09-29 16:29:21,291 - INFO - Saved PCA components to pca_components.csv
+2024-09-29 16:29:21,291 - INFO - Performing rolling window PCA with window size 1950 and step size 195
+2024-09-29 16:29:23,318 - INFO - Rolling window PCA completed
+2024-09-29 16:29:28,185 - INFO - Saved rolling window PCA results to rolling_window_pca_results.csv
+2024-09-29 16:29:28,185 - INFO - Max components: 228, Max features: 457
+2024-09-29 16:29:28,201 - INFO - Performing parallel rolling window Sparse PCA with window size 1950 and step size 195
+2024-09-29 16:34:07,616 - INFO - Parallel rolling window Sparse PCA completed
+2024-09-29 16:34:07,766 - INFO - Saved rolling window Sparse PCA results to rolling_window_sparse_pca_results.csv
+2024-09-29 16:34:07,766 - INFO - Max components: 10, Max features: 457
+2024-09-29 16:35:20,502 - INFO - Saved Sparse PCA components to sparse_pca_components.csv
+2024-09-29 16:35:20,607 - INFO - Performing sector-based PCA
+2024-09-29 16:35:20,631 - INFO - Sector-based PCA completed
+2024-09-29 16:35:20,840 - INFO - PCA analysis completed successfully

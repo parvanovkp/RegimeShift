@@ -1,0 +1,7 @@
+2024-09-30 00:42:45,713 - INFO - Loaded data from pca_results/rolling_window_pca_results.csv with shape (19, 104196)
+2024-09-30 00:42:45,773 - INFO - Loaded data from pca_results/rolling_window_sparse_pca_results.csv with shape (19, 4570)
+2024-09-30 00:42:45,778 - INFO - Loaded data from pca_results/pca_components.csv with shape (457, 10)
+2024-09-30 00:42:45,780 - INFO - Loaded data from pca_results/sparse_pca_components.csv with shape (457, 10)
+2024-09-30 00:42:45,782 - INFO - Loaded sector mapping for 457 stocks
+2024-09-30 00:42:45,782 - INFO - Number of stocks: 457
+2024-09-30 00:42:46,541 - INFO - Analysis completed successfully. Results saved in the 'rolling_window_analysis' directory.
