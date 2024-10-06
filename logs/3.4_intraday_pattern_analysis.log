@@ -1,0 +1,36 @@
+2024-10-05 20:16:34,589 - INFO - Loaded data from preprocessed_data/preprocessed_stocks.csv with shape (5462, 457)
+2024-10-05 20:16:34,592 - INFO - Loaded sector mapping for 457 stocks
+2024-10-05 20:16:42,959 - INFO - Grouped data into 13 intraday periods
+2024-10-05 20:19:18,106 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:19:18,108 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:19:34,204 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:19:34,205 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:19:41,158 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:19:41,159 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:19:51,886 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:19:51,887 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:19:55,967 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:19:55,968 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:01,051 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:01,052 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:12,899 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:12,900 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:16,596 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:16,597 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:21,509 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:21,509 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:27,638 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:27,639 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:38,347 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:38,348 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:41,425 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:41,426 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:57,016 - INFO - Performed Sparse PCA with 10 components
+2024-10-05 20:20:57,016 - INFO - Calculated sector loadings for 10 sectors
+2024-10-05 20:20:57,016 - INFO - Analyzed intraday patterns for 13 periods
+2024-10-05 20:20:57,128 - INFO - Created intraday heatmap with 10 components
+2024-10-05 20:20:57,151 - INFO - Saved intraday patterns heatmap to interpretation_results/intraday_patterns_heatmap.html
+2024-10-05 20:20:57,151 - INFO - Analyzed sector influence for 10 sectors
+2024-10-05 20:20:57,164 - INFO - Created sector influence plot with 10 sectors
+2024-10-05 20:20:57,183 - INFO - Saved sector influence changes plot to interpretation_results/sector_influence_changes.html
+2024-10-05 20:20:57,183 - INFO - Intraday pattern analysis completed successfully.
