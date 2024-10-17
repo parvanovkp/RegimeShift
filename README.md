@@ -17,9 +17,6 @@ This project applies PCA and Sparse PCA to analyze regime shifts in S&P 500 stoc
 - Detected potential regime shifts, particularly around the September 2024 Fed rate cut
 - Uncovered significant intraday patterns in sector behaviors
 
-## Usage
-Detailed analysis and code available in the project notebooks. Interactive visualizations can be accessed through the HTML files in the `assets` folder.
-
 ## Future Work
 - Extend analysis to longer time periods
 - Incorporate additional data sources (e.g., news sentiment)
